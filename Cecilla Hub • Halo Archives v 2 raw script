@@ -1,0 +1,2294 @@
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local SoundService = game:GetService("SoundService")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Workspace Path Safeguard
+local GameplayFolder = Workspace:WaitForChild("Gameplay", 5)
+local ItemsFolder = GameplayFolder and GameplayFolder:WaitForChild("Item", 5)
+
+if not ItemsFolder then
+    warn("[Halo Archives | Cecilla Hub Error]: workspace.Gameplay.Item path not found!")
+    return
+end
+
+-- Clean up existing UI instance
+if CoreGui:FindFirstChild("HaloArchivesHub") then
+    CoreGui.HaloArchivesHub:Destroy()
+end
+
+----------------------------------------------------
+-- THEMES & PRESETS ENGINE
+----------------------------------------------------
+local Presets = {
+    ["Cyber Neon"] = {
+        BG_MAIN = Color3.fromRGB(11, 13, 18),
+        HEADER_BG = Color3.fromRGB(17, 20, 28),
+        CARD_BG = Color3.fromRGB(22, 26, 38),
+        CARD_HOVER = Color3.fromRGB(28, 34, 48),
+        ACCENT_CYAN = Color3.fromRGB(0, 240, 255),
+        ACCENT_SECONDARY = Color3.fromRGB(168, 85, 247),
+        TEXT_MAIN = Color3.fromRGB(240, 244, 255),
+        TEXT_MUTED = Color3.fromRGB(120, 132, 155),
+        BORDER_COLOR = Color3.fromRGB(28, 34, 46),
+    },
+    ["Midnight Purple"] = {
+        BG_MAIN = Color3.fromRGB(13, 11, 20),
+        HEADER_BG = Color3.fromRGB(20, 17, 31),
+        CARD_BG = Color3.fromRGB(28, 24, 43),
+        CARD_HOVER = Color3.fromRGB(36, 30, 56),
+        ACCENT_CYAN = Color3.fromRGB(168, 85, 247),
+        ACCENT_SECONDARY = Color3.fromRGB(236, 72, 153),
+        TEXT_MAIN = Color3.fromRGB(245, 240, 255),
+        TEXT_MUTED = Color3.fromRGB(135, 120, 155),
+        BORDER_COLOR = Color3.fromRGB(38, 31, 56),
+    },
+    ["Crimson Blood"] = {
+        BG_MAIN = Color3.fromRGB(18, 11, 11),
+        HEADER_BG = Color3.fromRGB(28, 17, 17),
+        CARD_BG = Color3.fromRGB(38, 22, 22),
+        CARD_HOVER = Color3.fromRGB(50, 28, 28),
+        ACCENT_CYAN = Color3.fromRGB(255, 65, 85),
+        ACCENT_SECONDARY = Color3.fromRGB(255, 120, 80),
+        TEXT_MAIN = Color3.fromRGB(255, 240, 240),
+        TEXT_MUTED = Color3.fromRGB(155, 120, 120),
+        BORDER_COLOR = Color3.fromRGB(48, 28, 28),
+    },
+    ["Emerald Matrix"] = {
+        BG_MAIN = Color3.fromRGB(10, 18, 13),
+        HEADER_BG = Color3.fromRGB(15, 28, 20),
+        CARD_BG = Color3.fromRGB(20, 38, 27),
+        CARD_HOVER = Color3.fromRGB(26, 48, 34),
+        ACCENT_CYAN = Color3.fromRGB(34, 197, 94),
+        ACCENT_SECONDARY = Color3.fromRGB(16, 185, 129),
+        TEXT_MAIN = Color3.fromRGB(240, 255, 244),
+        TEXT_MUTED = Color3.fromRGB(120, 155, 132),
+        BORDER_COLOR = Color3.fromRGB(28, 48, 34),
+    },
+    ["Sunset Gold"] = {
+        BG_MAIN = Color3.fromRGB(18, 15, 10),
+        HEADER_BG = Color3.fromRGB(28, 23, 15),
+        CARD_BG = Color3.fromRGB(38, 31, 20),
+        CARD_HOVER = Color3.fromRGB(50, 40, 26),
+        ACCENT_CYAN = Color3.fromRGB(245, 158, 11),
+        ACCENT_SECONDARY = Color3.fromRGB(234, 88, 12),
+        TEXT_MAIN = Color3.fromRGB(255, 250, 240),
+        TEXT_MUTED = Color3.fromRGB(155, 142, 120),
+        BORDER_COLOR = Color3.fromRGB(48, 38, 26),
+    },
+    ["Tokyo Pink"] = {
+        BG_MAIN = Color3.fromRGB(18, 11, 16),
+        HEADER_BG = Color3.fromRGB(28, 17, 25),
+        CARD_BG = Color3.fromRGB(38, 22, 34),
+        CARD_HOVER = Color3.fromRGB(50, 28, 44),
+        ACCENT_CYAN = Color3.fromRGB(236, 72, 153),
+        ACCENT_SECONDARY = Color3.fromRGB(244, 114, 182),
+        TEXT_MAIN = Color3.fromRGB(255, 240, 250),
+        TEXT_MUTED = Color3.fromRGB(155, 120, 145),
+        BORDER_COLOR = Color3.fromRGB(48, 28, 42),
+    },
+    ["Monochrome Dark"] = {
+        BG_MAIN = Color3.fromRGB(15, 15, 15),
+        HEADER_BG = Color3.fromRGB(24, 24, 24),
+        CARD_BG = Color3.fromRGB(32, 32, 32),
+        CARD_HOVER = Color3.fromRGB(42, 42, 42),
+        ACCENT_CYAN = Color3.fromRGB(220, 220, 220),
+        ACCENT_SECONDARY = Color3.fromRGB(160, 160, 160),
+        TEXT_MAIN = Color3.fromRGB(255, 255, 255),
+        TEXT_MUTED = Color3.fromRGB(140, 140, 140),
+        BORDER_COLOR = Color3.fromRGB(45, 45, 45),
+    },
+    ["Oceanic Deep"] = {
+        BG_MAIN = Color3.fromRGB(10, 15, 22),
+        HEADER_BG = Color3.fromRGB(15, 23, 34),
+        CARD_BG = Color3.fromRGB(20, 31, 46),
+        CARD_HOVER = Color3.fromRGB(26, 40, 60),
+        ACCENT_CYAN = Color3.fromRGB(14, 165, 233),
+        ACCENT_SECONDARY = Color3.fromRGB(56, 189, 248),
+        TEXT_MAIN = Color3.fromRGB(240, 248, 255),
+        TEXT_MUTED = Color3.fromRGB(120, 140, 165),
+        BORDER_COLOR = Color3.fromRGB(28, 42, 60),
+    },
+    ["Vaporwave"] = {
+        BG_MAIN = Color3.fromRGB(16, 12, 24),
+        HEADER_BG = Color3.fromRGB(25, 18, 38),
+        CARD_BG = Color3.fromRGB(35, 25, 54),
+        CARD_HOVER = Color3.fromRGB(45, 32, 68),
+        ACCENT_CYAN = Color3.fromRGB(6, 182, 212),
+        ACCENT_SECONDARY = Color3.fromRGB(217, 70, 239),
+        TEXT_MAIN = Color3.fromRGB(250, 240, 255),
+        TEXT_MUTED = Color3.fromRGB(145, 125, 165),
+        BORDER_COLOR = Color3.fromRGB(45, 32, 68),
+    },
+    ["Solar Flare"] = {
+        BG_MAIN = Color3.fromRGB(20, 13, 10),
+        HEADER_BG = Color3.fromRGB(30, 20, 15),
+        CARD_BG = Color3.fromRGB(42, 27, 20),
+        CARD_HOVER = Color3.fromRGB(54, 34, 25),
+        ACCENT_CYAN = Color3.fromRGB(249, 115, 22),
+        ACCENT_SECONDARY = Color3.fromRGB(250, 204, 21),
+        TEXT_MAIN = Color3.fromRGB(255, 245, 240),
+        TEXT_MUTED = Color3.fromRGB(165, 132, 120),
+        BORDER_COLOR = Color3.fromRGB(52, 34, 25),
+    }
+}
+
+local currentThemeName = "Cyber Neon"
+local currentTheme = Presets[currentThemeName]
+
+----------------------------------------------------
+-- CONFIGURATION & STATE
+----------------------------------------------------
+local Settings = {
+    TeleportEffects = true,
+    SoundEnabled = true,
+    Notifications = true,
+    AntiAFK = true,
+    MuteGameAudio = false,
+    FarmSpeed = 0.35,
+}
+
+local activeTab = "Main"
+local themeUpdateListeners = {}
+
+local function registerThemeElement(callback)
+    table.insert(themeUpdateListeners, callback)
+    callback(currentTheme)
+
+    local removed = false
+    return function()
+        if removed then return end
+        removed = true
+
+        for i = #themeUpdateListeners, 1, -1 do
+            if themeUpdateListeners[i] == callback then
+                table.remove(themeUpdateListeners, i)
+                break
+            end
+        end
+    end
+end
+
+local function applyTheme(themeName)
+    if not Presets[themeName] then return end
+    currentThemeName = themeName
+    currentTheme = Presets[themeName]
+    local listeners = table.clone(themeUpdateListeners)
+    for _, cb in ipairs(listeners) do
+        pcall(cb, currentTheme)
+    end
+end
+
+----------------------------------------------------
+-- AUDIO FEEDBACK ENGINE
+----------------------------------------------------
+local function playSound(soundId, pitch)
+    if not Settings.SoundEnabled then return end
+    task.spawn(function()
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://" .. tostring(soundId)
+        sound.Volume = 0.3
+        sound.Pitch = pitch or 1
+        sound.Parent = SoundService
+        sound:Play()
+        sound.Ended:Connect(function()
+            sound:Destroy()
+        end)
+    end)
+end
+
+local SOUND_CLICK = 6895079853
+local SOUND_TOGGLE = 6895079980
+local SOUND_CLOSE = 6895080104
+local SOUND_TELEPORT = 2865227271
+local SOUND_TAB = 6895079712
+local SOUND_NOTIF = 6895079520
+
+----------------------------------------------------
+-- EXECUTOR PROTECTED SCREEN GUI
+----------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HaloArchivesHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+if gethui then
+    ScreenGui.Parent = gethui()
+elseif syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+else
+    local ok = pcall(function() ScreenGui.Parent = CoreGui end)
+    if not ok then
+        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
+end
+
+----------------------------------------------------
+-- NOTIFICATION SYSTEM ENGINE
+----------------------------------------------------
+local NotifContainer = Instance.new("Frame")
+NotifContainer.Name = "NotifContainer"
+NotifContainer.Size = UDim2.new(0, 260, 1, -20)
+NotifContainer.Position = UDim2.new(1, -270, 0, 10)
+NotifContainer.BackgroundTransparency = 1
+NotifContainer.ZIndex = 100
+NotifContainer.Parent = ScreenGui
+
+local NotifLayout = Instance.new("UIListLayout")
+NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
+NotifLayout.Padding = UDim.new(0, 8)
+NotifLayout.Parent = NotifContainer
+
+local function showNotification(title, message)
+    if not Settings.Notifications then return end
+
+    playSound(SOUND_NOTIF, 1.2)
+
+    local Toast = Instance.new("Frame")
+    Toast.Size = UDim2.new(1, 0, 0, 48)
+    Toast.BorderSizePixel = 0
+    Toast.ZIndex = 101
+    Toast.Parent = NotifContainer
+
+    local ToastCorner = Instance.new("UICorner")
+    ToastCorner.CornerRadius = UDim.new(0, 8)
+    ToastCorner.Parent = Toast
+
+    local ToastStroke = Instance.new("UIStroke")
+    ToastStroke.Thickness = 1
+    ToastStroke.Parent = Toast
+
+    local AccentBar = Instance.new("Frame")
+    AccentBar.Size = UDim2.new(0, 3, 1, -12)
+    AccentBar.Position = UDim2.new(0, 6, 0, 6)
+    AccentBar.BorderSizePixel = 0
+    AccentBar.ZIndex = 102
+    AccentBar.Parent = Toast
+
+    local BarCorner = Instance.new("UICorner")
+    BarCorner.CornerRadius = UDim.new(0, 2)
+    BarCorner.Parent = AccentBar
+
+    local TitleLbl = Instance.new("TextLabel")
+    TitleLbl.Size = UDim2.new(1, -20, 0, 18)
+    TitleLbl.Position = UDim2.new(0, 16, 0, 6)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = title
+    TitleLbl.Font = Enum.Font.GothamBold
+    TitleLbl.TextSize = 11
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 102
+    TitleLbl.Parent = Toast
+
+    local SubLbl = Instance.new("TextLabel")
+    SubLbl.Size = UDim2.new(1, -20, 0, 16)
+    SubLbl.Position = UDim2.new(0, 16, 0, 24)
+    SubLbl.BackgroundTransparency = 1
+    SubLbl.Text = message
+    SubLbl.Font = Enum.Font.Gotham
+    SubLbl.TextSize = 10
+    SubLbl.TextXAlignment = Enum.TextXAlignment.Left
+    SubLbl.ZIndex = 102
+    SubLbl.Parent = Toast
+
+    registerThemeElement(function(t)
+        Toast.BackgroundColor3 = t.HEADER_BG
+        ToastStroke.Color = t.ACCENT_CYAN
+        AccentBar.BackgroundColor3 = t.ACCENT_CYAN
+        TitleLbl.TextColor3 = t.TEXT_MAIN
+        SubLbl.TextColor3 = t.TEXT_MUTED
+    end)
+
+    Toast.Position = UDim2.new(1, 100, 0, 0)
+    TweenService:Create(Toast, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+
+    task.delay(3, function()
+        if Toast and Toast.Parent then
+            local tw = TweenService:Create(Toast, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(1, 100, 0, 0)})
+            tw:Play()
+            tw.Completed:Wait()
+            Toast:Destroy()
+        end
+    end)
+end
+
+----------------------------------------------------
+-- MAIN CONTAINER
+----------------------------------------------------
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 370, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -185, 0.5, -260)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local MainUICorner = Instance.new("UICorner")
+MainUICorner.CornerRadius = UDim.new(0, 12)
+MainUICorner.Parent = MainFrame
+
+local MainUIStroke = Instance.new("UIStroke")
+MainUIStroke.Thickness = 1.5
+MainUIStroke.Parent = MainFrame
+
+registerThemeElement(function(t)
+    MainFrame.BackgroundColor3 = t.BG_MAIN
+    MainUIStroke.Color = t.BORDER_COLOR
+end)
+
+----------------------------------------------------
+-- SUBTLE BACKGROUND WAVE ANIMATION
+----------------------------------------------------
+local WaveCanvas = Instance.new("Frame")
+WaveCanvas.Size = UDim2.new(1, 0, 1, 0)
+WaveCanvas.BackgroundTransparency = 1
+WaveCanvas.ClipsDescendants = true
+WaveCanvas.ZIndex = 0
+WaveCanvas.Parent = MainFrame
+
+local WaveLine = Instance.new("Frame")
+WaveLine.Size = UDim2.new(2, 0, 0, 1.5)
+WaveLine.Position = UDim2.new(-0.5, 0, 0.4, 0)
+WaveLine.BackgroundTransparency = 0.85
+WaveLine.BorderSizePixel = 0
+WaveLine.ZIndex = 0
+WaveLine.Parent = WaveCanvas
+
+registerThemeElement(function(t)
+    WaveLine.BackgroundColor3 = t.ACCENT_CYAN
+end)
+
+task.spawn(function()
+    while MainFrame and MainFrame.Parent do
+        local t1 = TweenService:Create(WaveLine, TweenInfo.new(5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Position = UDim2.new(0, 0, 0.5, 0),
+            BackgroundTransparency = 0.7
+        })
+        t1:Play()
+        t1.Completed:Wait()
+
+        local t2 = TweenService:Create(WaveLine, TweenInfo.new(5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Position = UDim2.new(-0.5, 0, 0.4, 0),
+            BackgroundTransparency = 0.85
+        })
+        t2:Play()
+        t2.Completed:Wait()
+    end
+end)
+
+----------------------------------------------------
+-- TOP BAR CONTROLS
+----------------------------------------------------
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 44)
+TopBar.BorderSizePixel = 0
+TopBar.ZIndex = 2
+TopBar.Parent = MainFrame
+
+local TopBarCorner = Instance.new("UICorner")
+TopBarCorner.CornerRadius = UDim.new(0, 12)
+TopBarCorner.Parent = TopBar
+
+local TopBarFix = Instance.new("Frame")
+TopBarFix.Size = UDim2.new(1, 0, 0, 10)
+TopBarFix.Position = UDim2.new(0, 0, 1, -10)
+TopBarFix.BorderSizePixel = 0
+TopBarFix.ZIndex = 2
+TopBarFix.Parent = TopBar
+
+local LogoBadge = Instance.new("Frame")
+LogoBadge.Size = UDim2.new(0, 8, 0, 8)
+LogoBadge.Position = UDim2.new(0, 14, 0.5, -4)
+LogoBadge.BorderSizePixel = 0
+LogoBadge.ZIndex = 3
+LogoBadge.Parent = TopBar
+
+local LogoCorner = Instance.new("UICorner")
+LogoCorner.CornerRadius = UDim.new(1, 0)
+LogoCorner.Parent = LogoBadge
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, -110, 1, 0)
+TitleText.Position = UDim2.new(0, 28, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "Cecilla Hub • Halo Archives"
+TitleText.TextSize = 11
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.ZIndex = 3
+TitleText.Parent = TopBar
+
+registerThemeElement(function(t)
+    TopBar.BackgroundColor3 = t.HEADER_BG
+    TopBarFix.BackgroundColor3 = t.HEADER_BG
+    LogoBadge.BackgroundColor3 = t.ACCENT_CYAN
+    TitleText.TextColor3 = t.TEXT_MAIN
+end)
+
+-- Window Control Buttons
+local ControlButtons = Instance.new("Frame")
+ControlButtons.Size = UDim2.new(0, 60, 1, 0)
+ControlButtons.Position = UDim2.new(1, -66, 0, 0)
+ControlButtons.BackgroundTransparency = 1
+ControlButtons.ZIndex = 3
+ControlButtons.Parent = TopBar
+
+local ControlLayout = Instance.new("UIListLayout")
+ControlLayout.FillDirection = Enum.FillDirection.Horizontal
+ControlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+ControlLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+ControlLayout.Padding = UDim.new(0, 6)
+ControlLayout.Parent = ControlButtons
+
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+MinimizeBtn.Text = "-"
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 14
+MinimizeBtn.AutoButtonColor = false
+MinimizeBtn.ZIndex = 3
+MinimizeBtn.Parent = ControlButtons
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinimizeBtn
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 65, 85)
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
+CloseBtn.AutoButtonColor = false
+CloseBtn.ZIndex = 3
+CloseBtn.Parent = ControlButtons
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+registerThemeElement(function(t)
+    MinimizeBtn.BackgroundColor3 = t.CARD_BG
+    MinimizeBtn.TextColor3 = t.TEXT_MAIN
+end)
+
+----------------------------------------------------
+-- NAVIGATION TAB BAR
+----------------------------------------------------
+local TabBar = Instance.new("Frame")
+TabBar.Name = "TabBar"
+TabBar.Size = UDim2.new(1, -24, 0, 32)
+TabBar.Position = UDim2.new(0, 12, 0, 52)
+TabBar.ZIndex = 2
+TabBar.Parent = MainFrame
+
+local TabBarCorner = Instance.new("UICorner")
+TabBarCorner.CornerRadius = UDim.new(0, 8)
+TabBarCorner.Parent = TabBar
+
+local TabBarLayout = Instance.new("UIListLayout")
+TabBarLayout.FillDirection = Enum.FillDirection.Horizontal
+TabBarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabBarLayout.Padding = UDim.new(0, 4)
+TabBarLayout.Parent = TabBar
+
+local TabBarPadding = Instance.new("UIPadding")
+TabBarPadding.PaddingLeft = UDim.new(0, 4)
+TabBarPadding.PaddingRight = UDim.new(0, 4)
+TabBarPadding.PaddingTop = UDim.new(0, 4)
+TabBarPadding.PaddingBottom = UDim.new(0, 4)
+TabBarPadding.Parent = TabBar
+
+local tabButtons = {}
+
+local function createTabBtn(text, order, tabName)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.333, -3, 1, 0)
+    btn.Text = text
+    btn.AutoButtonColor = false
+    btn.LayoutOrder = order
+    btn.ZIndex = 3
+    btn.Parent = TabBar
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = btn
+
+    tabButtons[tabName] = btn
+    return btn
+end
+
+local MainTabBtn = createTabBtn("Main Hub", 1, "Main")
+local SettingsTabBtn = createTabBtn("Settings", 2, "Settings")
+local CreditsTabBtn = createTabBtn("Credits", 3, "Credits")
+
+registerThemeElement(function(t)
+    TabBar.BackgroundColor3 = t.HEADER_BG
+    for name, btn in pairs(tabButtons) do
+        if name == activeTab then
+            btn.BackgroundColor3 = t.CARD_BG
+            btn.TextColor3 = t.ACCENT_CYAN
+            btn.Font = Enum.Font.GothamBold
+        else
+            btn.BackgroundColor3 = t.HEADER_BG
+            btn.TextColor3 = t.TEXT_MUTED
+            btn.Font = Enum.Font.GothamMedium
+        end
+    end
+end)
+
+----------------------------------------------------
+-- CONTENT CONTAINERS
+----------------------------------------------------
+local MainContent = Instance.new("Frame")
+MainContent.Name = "MainContent"
+MainContent.Size = UDim2.new(1, -24, 1, -96)
+MainContent.Position = UDim2.new(0, 12, 0, 90)
+MainContent.BackgroundTransparency = 1
+MainContent.ClipsDescendants = true
+MainContent.ZIndex = 2
+MainContent.Parent = MainFrame
+
+local SettingsContent = Instance.new("Frame")
+SettingsContent.Name = "SettingsContent"
+SettingsContent.Size = UDim2.new(1, -24, 1, -96)
+SettingsContent.Position = UDim2.new(0, 12, 0, 90)
+SettingsContent.BackgroundTransparency = 1
+SettingsContent.Visible = false
+SettingsContent.ClipsDescendants = true
+SettingsContent.ZIndex = 2
+SettingsContent.Parent = MainFrame
+
+local CreditsContent = Instance.new("Frame")
+CreditsContent.Name = "CreditsContent"
+CreditsContent.Size = UDim2.new(1, -24, 1, -96)
+CreditsContent.Position = UDim2.new(0, 12, 0, 90)
+CreditsContent.BackgroundTransparency = 1
+CreditsContent.Visible = false
+CreditsContent.ClipsDescendants = true
+CreditsContent.ZIndex = 2
+CreditsContent.Parent = MainFrame
+
+----------------------------------------------------
+-- TAB SWITCHING ENGINE
+----------------------------------------------------
+local function switchTab(targetTab)
+    activeTab = targetTab
+    playSound(SOUND_TAB, 1.05)
+
+    MainContent.Visible = (targetTab == "Main")
+    SettingsContent.Visible = (targetTab == "Settings")
+    CreditsContent.Visible = (targetTab == "Credits")
+
+    for name, btn in pairs(tabButtons) do
+        if name == targetTab then
+            TweenService:Create(btn, TweenInfo.new(0.15), {
+                BackgroundColor3 = currentTheme.CARD_BG,
+                TextColor3 = currentTheme.ACCENT_CYAN
+            }):Play()
+            btn.Font = Enum.Font.GothamBold
+        else
+            TweenService:Create(btn, TweenInfo.new(0.15), {
+                BackgroundColor3 = currentTheme.HEADER_BG,
+                TextColor3 = currentTheme.TEXT_MUTED
+            }):Play()
+            btn.Font = Enum.Font.GothamMedium
+        end
+    end
+end
+
+MainTabBtn.MouseButton1Click:Connect(function() switchTab("Main") end)
+SettingsTabBtn.MouseButton1Click:Connect(function() switchTab("Settings") end)
+CreditsTabBtn.MouseButton1Click:Connect(function() switchTab("Credits") end)
+
+for tabName, btn in pairs(tabButtons) do
+    btn.MouseEnter:Connect(function()
+        if activeTab ~= tabName then
+            TweenService:Create(btn, TweenInfo.new(0.12), {
+                BackgroundColor3 = currentTheme.CARD_HOVER,
+                TextColor3 = currentTheme.TEXT_MAIN
+            }):Play()
+        end
+    end)
+
+    btn.MouseLeave:Connect(function()
+        if activeTab ~= tabName then
+            TweenService:Create(btn, TweenInfo.new(0.12), {
+                BackgroundColor3 = currentTheme.HEADER_BG,
+                TextColor3 = currentTheme.TEXT_MUTED
+            }):Play()
+        end
+    end)
+end
+
+----------------------------------------------------
+-- TAB 1: MAIN HUB ELEMENTS
+----------------------------------------------------
+local FarmCard = Instance.new("Frame")
+FarmCard.Size = UDim2.new(1, 0, 0, 56)
+FarmCard.ZIndex = 2
+FarmCard.Parent = MainContent
+
+local FarmCardCorner = Instance.new("UICorner")
+FarmCardCorner.CornerRadius = UDim.new(0, 8)
+FarmCardCorner.Parent = FarmCard
+
+local FarmCardStroke = Instance.new("UIStroke")
+FarmCardStroke.Thickness = 1
+FarmCardStroke.Parent = FarmCard
+
+local LivePulse = Instance.new("Frame")
+LivePulse.Size = UDim2.new(0, 8, 0, 8)
+LivePulse.Position = UDim2.new(0, 14, 0.5, -4)
+LivePulse.BorderSizePixel = 0
+LivePulse.ZIndex = 3
+LivePulse.Parent = FarmCard
+
+local PulseCorner = Instance.new("UICorner")
+PulseCorner.CornerRadius = UDim.new(1, 0)
+PulseCorner.Parent = LivePulse
+
+local FarmLabel = Instance.new("TextLabel")
+FarmLabel.Size = UDim2.new(0.55, 0, 0, 18)
+FarmLabel.Position = UDim2.new(0, 30, 0, 10)
+FarmLabel.BackgroundTransparency = 1
+FarmLabel.Text = "Auto Farm Items"
+FarmLabel.Font = Enum.Font.GothamBold
+FarmLabel.TextSize = 12
+FarmLabel.TextXAlignment = Enum.TextXAlignment.Left
+FarmLabel.ZIndex = 3
+FarmLabel.Parent = FarmCard
+
+local FarmSubText = Instance.new("TextLabel")
+FarmSubText.Size = UDim2.new(0.55, 0, 0, 14)
+FarmSubText.Position = UDim2.new(0, 30, 0, 28)
+FarmSubText.BackgroundTransparency = 1
+FarmSubText.Text = "Loop through active items"
+FarmSubText.Font = Enum.Font.Gotham
+FarmSubText.TextSize = 10
+FarmSubText.TextXAlignment = Enum.TextXAlignment.Left
+FarmSubText.ZIndex = 3
+FarmSubText.Parent = FarmCard
+
+local ToggleBg = Instance.new("TextButton")
+ToggleBg.Size = UDim2.new(0, 44, 0, 22)
+ToggleBg.Position = UDim2.new(1, -54, 0.5, -11)
+ToggleBg.Text = ""
+ToggleBg.AutoButtonColor = false
+ToggleBg.ZIndex = 3
+ToggleBg.Parent = FarmCard
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBg
+
+local ToggleCircle = Instance.new("Frame")
+ToggleCircle.Size = UDim2.new(0, 16, 0, 16)
+ToggleCircle.Position = UDim2.new(0, 3, 0.5, -8)
+ToggleCircle.ZIndex = 4
+ToggleCircle.Parent = ToggleBg
+
+local CircleCorner = Instance.new("UICorner")
+CircleCorner.CornerRadius = UDim.new(1, 0)
+CircleCorner.Parent = ToggleCircle
+
+local autoFarmEnabled = false
+
+registerThemeElement(function(t)
+    FarmCard.BackgroundColor3 = t.CARD_BG
+    FarmCardStroke.Color = t.BORDER_COLOR
+    FarmLabel.TextColor3 = t.TEXT_MAIN
+    FarmSubText.TextColor3 = t.TEXT_MUTED
+
+    if autoFarmEnabled then
+        ToggleBg.BackgroundColor3 = t.ACCENT_CYAN
+        ToggleCircle.BackgroundColor3 = t.BG_MAIN
+        LivePulse.BackgroundColor3 = t.ACCENT_CYAN
+    else
+        ToggleBg.BackgroundColor3 = t.HEADER_BG
+        ToggleCircle.BackgroundColor3 = t.TEXT_MAIN
+        LivePulse.BackgroundColor3 = t.TEXT_MUTED
+    end
+end)
+
+local SectionHeader = Instance.new("Frame")
+SectionHeader.Size = UDim2.new(1, 0, 0, 20)
+SectionHeader.Position = UDim2.new(0, 0, 0, 66)
+SectionHeader.BackgroundTransparency = 1
+SectionHeader.ZIndex = 2
+SectionHeader.Parent = MainContent
+
+local BoxTitle = Instance.new("TextLabel")
+BoxTitle.Size = UDim2.new(0.7, 0, 1, 0)
+BoxTitle.BackgroundTransparency = 1
+BoxTitle.Text = "CLICK ITEM TO TELEPORT"
+BoxTitle.Font = Enum.Font.GothamBold
+BoxTitle.TextSize = 10
+BoxTitle.TextXAlignment = Enum.TextXAlignment.Left
+BoxTitle.ZIndex = 2
+BoxTitle.Parent = SectionHeader
+
+local ItemCountBadge = Instance.new("TextLabel")
+ItemCountBadge.Size = UDim2.new(0.3, 0, 1, 0)
+ItemCountBadge.Position = UDim2.new(0.7, 0, 0, 0)
+ItemCountBadge.BackgroundTransparency = 1
+ItemCountBadge.Text = "0 Items"
+ItemCountBadge.Font = Enum.Font.GothamMedium
+ItemCountBadge.TextSize = 10
+ItemCountBadge.TextXAlignment = Enum.TextXAlignment.Right
+ItemCountBadge.ZIndex = 2
+ItemCountBadge.Parent = SectionHeader
+
+registerThemeElement(function(t)
+    BoxTitle.TextColor3 = t.ACCENT_CYAN
+    ItemCountBadge.TextColor3 = t.TEXT_MUTED
+end)
+
+local ItemBoxContainer = Instance.new("Frame")
+ItemBoxContainer.Size = UDim2.new(1, 0, 1, -90)
+ItemBoxContainer.Position = UDim2.new(0, 0, 0, 88)
+ItemBoxContainer.ClipsDescendants = true
+ItemBoxContainer.ZIndex = 2
+ItemBoxContainer.Parent = MainContent
+
+local BoxCorner = Instance.new("UICorner")
+BoxCorner.CornerRadius = UDim.new(0, 8)
+BoxCorner.Parent = ItemBoxContainer
+
+local BoxStroke = Instance.new("UIStroke")
+BoxStroke.Thickness = 1
+BoxStroke.Parent = ItemBoxContainer
+
+local ItemScrollList = Instance.new("ScrollingFrame")
+ItemScrollList.Size = UDim2.new(1, -6, 1, -10)
+ItemScrollList.Position = UDim2.new(0, 3, 0, 5)
+ItemScrollList.BackgroundTransparency = 1
+ItemScrollList.BorderSizePixel = 0
+ItemScrollList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ItemScrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
+ItemScrollList.ScrollBarThickness = 3
+ItemScrollList.ClipsDescendants = true
+ItemScrollList.ZIndex = 3
+ItemScrollList.Parent = ItemBoxContainer
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Padding = UDim.new(0, 6)
+ListLayout.Parent = ItemScrollList
+
+registerThemeElement(function(t)
+    ItemBoxContainer.BackgroundColor3 = t.CARD_BG
+    BoxStroke.Color = t.BORDER_COLOR
+    ItemScrollList.ScrollBarImageColor3 = t.ACCENT_CYAN
+end)
+
+----------------------------------------------------
+-- TAB 2: REBUILT SETTINGS & 10 PRESETS
+----------------------------------------------------
+local SettingsScroll = Instance.new("ScrollingFrame")
+SettingsScroll.Size = UDim2.new(1, 0, 1, 0)
+SettingsScroll.BackgroundTransparency = 1
+SettingsScroll.BorderSizePixel = 0
+SettingsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+SettingsScroll.ScrollBarThickness = 3
+SettingsScroll.ClipsDescendants = true
+SettingsScroll.ZIndex = 3
+SettingsScroll.Parent = SettingsContent
+
+local SettingsLayout = Instance.new("UIListLayout")
+SettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SettingsLayout.Padding = UDim.new(0, 8)
+SettingsLayout.Parent = SettingsScroll
+
+registerThemeElement(function(t)
+    SettingsScroll.ScrollBarImageColor3 = t.ACCENT_CYAN
+end)
+
+local function createSettingToggleRow(title, subtext, defaultVal, callback)
+    local RowCard = Instance.new("Frame")
+    RowCard.Size = UDim2.new(1, -6, 0, 50)
+    RowCard.ZIndex = 3
+    RowCard.Parent = SettingsScroll
+
+    local RowCorner = Instance.new("UICorner")
+    RowCorner.CornerRadius = UDim.new(0, 8)
+    RowCorner.Parent = RowCard
+
+    local RowStroke = Instance.new("UIStroke")
+    RowStroke.Thickness = 1
+    RowStroke.Parent = RowCard
+
+    local RowTitle = Instance.new("TextLabel")
+    RowTitle.Size = UDim2.new(0.65, 0, 0, 18)
+    RowTitle.Position = UDim2.new(0, 12, 0, 8)
+    RowTitle.BackgroundTransparency = 1
+    RowTitle.Text = title
+    RowTitle.Font = Enum.Font.GothamBold
+    RowTitle.TextSize = 11
+    RowTitle.TextXAlignment = Enum.TextXAlignment.Left
+    RowTitle.ZIndex = 4
+    RowTitle.Parent = RowCard
+
+    local RowSub = Instance.new("TextLabel")
+    RowSub.Size = UDim2.new(0.65, 0, 0, 14)
+    RowSub.Position = UDim2.new(0, 12, 0, 26)
+    RowSub.BackgroundTransparency = 1
+    RowSub.Text = subtext
+    RowSub.Font = Enum.Font.Gotham
+    RowSub.TextSize = 9
+    RowSub.TextXAlignment = Enum.TextXAlignment.Left
+    RowSub.ZIndex = 4
+    RowSub.Parent = RowCard
+
+    local RowToggleBg = Instance.new("TextButton")
+    RowToggleBg.Size = UDim2.new(0, 40, 0, 20)
+    RowToggleBg.Position = UDim2.new(1, -50, 0.5, -10)
+    RowToggleBg.Text = ""
+    RowToggleBg.AutoButtonColor = false
+    RowToggleBg.ZIndex = 4
+    RowToggleBg.Parent = RowCard
+
+    local RowToggleCorner = Instance.new("UICorner")
+    RowToggleCorner.CornerRadius = UDim.new(1, 0)
+    RowToggleCorner.Parent = RowToggleBg
+
+    local RowCircle = Instance.new("Frame")
+    RowCircle.Size = UDim2.new(0, 14, 0, 14)
+    RowCircle.ZIndex = 5
+    RowCircle.Parent = RowToggleBg
+
+    local RowCircleCorner = Instance.new("UICorner")
+    RowCircleCorner.CornerRadius = UDim.new(1, 0)
+    RowCircleCorner.Parent = RowCircle
+
+    local isToggled = defaultVal
+
+    local function updateToggleVisuals(t)
+        RowCard.BackgroundColor3 = t.CARD_BG
+        RowStroke.Color = t.BORDER_COLOR
+        RowTitle.TextColor3 = t.TEXT_MAIN
+        RowSub.TextColor3 = t.TEXT_MUTED
+
+        if isToggled then
+            RowToggleBg.BackgroundColor3 = t.ACCENT_CYAN
+            RowCircle.Position = UDim2.new(1, -17, 0.5, -7)
+            RowCircle.BackgroundColor3 = t.BG_MAIN
+        else
+            RowToggleBg.BackgroundColor3 = t.HEADER_BG
+            RowCircle.Position = UDim2.new(0, 3, 0.5, -7)
+            RowCircle.BackgroundColor3 = t.TEXT_MAIN
+        end
+    end
+
+    registerThemeElement(updateToggleVisuals)
+
+    RowToggleBg.MouseButton1Click:Connect(function()
+        isToggled = not isToggled
+        playSound(SOUND_TOGGLE, isToggled and 1.1 or 0.9)
+
+        if isToggled then
+            TweenService:Create(RowToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = currentTheme.ACCENT_CYAN}):Play()
+            TweenService:Create(RowCircle, TweenInfo.new(0.2), {Position = UDim2.new(1, -17, 0.5, -7), BackgroundColor3 = currentTheme.BG_MAIN}):Play()
+        else
+            TweenService:Create(RowToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = currentTheme.HEADER_BG}):Play()
+            TweenService:Create(RowCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 3, 0.5, -7), BackgroundColor3 = currentTheme.TEXT_MAIN}):Play()
+        end
+
+        callback(isToggled)
+    end)
+end
+
+-- SPEED MODE SELECTOR
+local SpeedCard = Instance.new("Frame")
+SpeedCard.Size = UDim2.new(1, -6, 0, 58)
+SpeedCard.ZIndex = 3
+SpeedCard.Parent = SettingsScroll
+
+local SpeedCorner = Instance.new("UICorner")
+SpeedCorner.CornerRadius = UDim.new(0, 8)
+SpeedCorner.Parent = SpeedCard
+
+local SpeedStroke = Instance.new("UIStroke")
+SpeedStroke.Thickness = 1
+SpeedStroke.Parent = SpeedCard
+
+local SpeedTitle = Instance.new("TextLabel")
+SpeedTitle.Size = UDim2.new(1, -20, 0, 16)
+SpeedTitle.Position = UDim2.new(0, 12, 0, 8)
+SpeedTitle.BackgroundTransparency = 1
+SpeedTitle.Text = "Auto Farm Delay"
+SpeedTitle.Font = Enum.Font.GothamBold
+SpeedTitle.TextSize = 11
+SpeedTitle.TextXAlignment = Enum.TextXAlignment.Left
+SpeedTitle.ZIndex = 4
+SpeedTitle.Parent = SpeedCard
+
+local SpeedBtnContainer = Instance.new("Frame")
+SpeedBtnContainer.Size = UDim2.new(1, -24, 0, 22)
+SpeedBtnContainer.Position = UDim2.new(0, 12, 0, 28)
+SpeedBtnContainer.BackgroundTransparency = 1
+SpeedBtnContainer.ZIndex = 4
+SpeedBtnContainer.Parent = SpeedCard
+
+local SpeedLayout = Instance.new("UIListLayout")
+SpeedLayout.FillDirection = Enum.FillDirection.Horizontal
+SpeedLayout.Padding = UDim.new(0, 6)
+SpeedLayout.Parent = SpeedBtnContainer
+
+local speedOptions = {
+    {name = "Fast (0.15s)", val = 0.15},
+    {name = "Balanced (0.35s)", val = 0.35},
+    {name = "Safe (0.60s)", val = 0.60}
+}
+
+local speedBtns = {}
+
+for idx, opt in ipairs(speedOptions) do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.333, -4, 1, 0)
+    b.Text = opt.name
+    b.Font = Enum.Font.GothamMedium
+    b.TextSize = 9
+    b.AutoButtonColor = false
+    b.ZIndex = 5
+    b.Parent = SpeedBtnContainer
+
+    local bc = Instance.new("UICorner")
+    bc.CornerRadius = UDim.new(0, 4)
+    bc.Parent = b
+
+    speedBtns[opt.val] = b
+
+    b.MouseButton1Click:Connect(function()
+        playSound(SOUND_CLICK, 1.1)
+        Settings.FarmSpeed = math.clamp(tonumber(opt.val) or 0.35, 0.15, 0.60)
+        for val, button in pairs(speedBtns) do
+            if val == opt.val then
+                TweenService:Create(button, TweenInfo.new(0.15), {
+                    BackgroundColor3 = currentTheme.ACCENT_CYAN,
+                    TextColor3 = currentTheme.BG_MAIN
+                }):Play()
+            else
+                TweenService:Create(button, TweenInfo.new(0.15), {
+                    BackgroundColor3 = currentTheme.HEADER_BG,
+                    TextColor3 = currentTheme.TEXT_MAIN
+                }):Play()
+            end
+        end
+        showNotification("Speed Updated", "Farm delay set to " .. opt.val .. "s")
+    end)
+end
+
+registerThemeElement(function(t)
+    SpeedCard.BackgroundColor3 = t.CARD_BG
+    SpeedStroke.Color = t.BORDER_COLOR
+    SpeedTitle.TextColor3 = t.TEXT_MAIN
+
+    for val, button in pairs(speedBtns) do
+        if Settings.FarmSpeed == val then
+            button.BackgroundColor3 = t.ACCENT_CYAN
+            button.TextColor3 = t.BG_MAIN
+        else
+            button.BackgroundColor3 = t.HEADER_BG
+            button.TextColor3 = t.TEXT_MAIN
+        end
+    end
+end)
+
+-- 10 UI STYLE PRESETS SELECTOR
+local ThemeCard = Instance.new("Frame")
+ThemeCard.Size = UDim2.new(1, -6, 0, 236)
+ThemeCard.ZIndex = 3
+ThemeCard.Parent = SettingsScroll
+
+local ThemeCorner = Instance.new("UICorner")
+ThemeCorner.CornerRadius = UDim.new(0, 9)
+ThemeCorner.Parent = ThemeCard
+
+local ThemeStroke = Instance.new("UIStroke")
+ThemeStroke.Thickness = 1
+ThemeStroke.Parent = ThemeCard
+
+local ThemeAccent = Instance.new("Frame")
+ThemeAccent.Size = UDim2.new(0, 3, 0, 38)
+ThemeAccent.Position = UDim2.new(0, 0, 0, 10)
+ThemeAccent.BorderSizePixel = 0
+ThemeAccent.ZIndex = 4
+ThemeAccent.Parent = ThemeCard
+
+local ThemeAccentCorner = Instance.new("UICorner")
+ThemeAccentCorner.CornerRadius = UDim.new(1, 0)
+ThemeAccentCorner.Parent = ThemeAccent
+
+local ThemeTitle = Instance.new("TextLabel")
+ThemeTitle.Size = UDim2.new(1, -28, 0, 17)
+ThemeTitle.Position = UDim2.new(0, 14, 0, 8)
+ThemeTitle.BackgroundTransparency = 1
+ThemeTitle.Text = "UI Presets & Style Layouts"
+ThemeTitle.Font = Enum.Font.GothamBold
+ThemeTitle.TextSize = 11
+ThemeTitle.TextXAlignment = Enum.TextXAlignment.Left
+ThemeTitle.ZIndex = 4
+ThemeTitle.Parent = ThemeCard
+
+local ThemeSub = Instance.new("TextLabel")
+ThemeSub.Size = UDim2.new(1, -28, 0, 14)
+ThemeSub.Position = UDim2.new(0, 14, 0, 25)
+ThemeSub.BackgroundTransparency = 1
+ThemeSub.Text = "Choose a theme to change the hub's visual style"
+ThemeSub.Font = Enum.Font.Gotham
+ThemeSub.TextSize = 9
+ThemeSub.TextXAlignment = Enum.TextXAlignment.Left
+ThemeSub.ZIndex = 4
+ThemeSub.Parent = ThemeCard
+
+local ThemeGrid = Instance.new("Frame")
+ThemeGrid.Size = UDim2.new(1, -24, 0, 178)
+ThemeGrid.Position = UDim2.new(0, 12, 0, 48)
+ThemeGrid.BackgroundTransparency = 1
+ThemeGrid.ZIndex = 4
+ThemeGrid.Parent = ThemeCard
+
+local GridLayout = Instance.new("UIGridLayout")
+GridLayout.CellSize = UDim2.new(0.48, 0, 0, 30)
+GridLayout.CellPadding = UDim2.new(0.04, 0, 0, 7)
+GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+GridLayout.Parent = ThemeGrid
+
+local presetBtns = {}
+local presetOrder = {
+    "Cyber Neon", "Midnight Purple", "Crimson Blood", "Emerald Matrix", "Sunset Gold",
+    "Tokyo Pink", "Monochrome Dark", "Oceanic Deep", "Vaporwave", "Solar Flare"
+}
+
+for idx, name in ipairs(presetOrder) do
+    local data = Presets[name]
+    local pBtn = Instance.new("TextButton")
+    pBtn.Text = ""
+    pBtn.AutoButtonColor = false
+    pBtn.LayoutOrder = idx
+    pBtn.ZIndex = 5
+    pBtn.Parent = ThemeGrid
+
+    local pCorner = Instance.new("UICorner")
+    pCorner.CornerRadius = UDim.new(0, 7)
+    pCorner.Parent = pBtn
+
+    local pStroke = Instance.new("UIStroke")
+    pStroke.Thickness = 1
+    pStroke.Parent = pBtn
+
+    local Dot = Instance.new("Frame")
+    Dot.Size = UDim2.new(0, 9, 0, 9)
+    Dot.Position = UDim2.new(0, 9, 0.5, -4)
+    Dot.BackgroundColor3 = data.ACCENT_CYAN
+    Dot.BorderSizePixel = 0
+    Dot.ZIndex = 6
+    Dot.Parent = pBtn
+
+    local DotCorner = Instance.new("UICorner")
+    DotCorner.CornerRadius = UDim.new(1, 0)
+    DotCorner.Parent = Dot
+
+    local pLabel = Instance.new("TextLabel")
+    pLabel.Size = UDim2.new(1, -30, 1, 0)
+    pLabel.Position = UDim2.new(0, 23, 0, 0)
+    pLabel.BackgroundTransparency = 1
+    pLabel.Text = name
+    pLabel.Font = Enum.Font.GothamMedium
+    pLabel.TextSize = 10
+    pLabel.TextXAlignment = Enum.TextXAlignment.Left
+    pLabel.TextYAlignment = Enum.TextYAlignment.Center
+    pLabel.ZIndex = 6
+    pLabel.Parent = pBtn
+
+    presetBtns[name] = {btn = pBtn, stroke = pStroke, label = pLabel, dot = Dot}
+
+    pBtn.MouseEnter:Connect(function()
+        if currentThemeName == name then
+            return
+        end
+        TweenService:Create(pBtn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = currentTheme.CARD_HOVER
+        }):Play()
+        TweenService:Create(pStroke, TweenInfo.new(0.12), {
+            Color = currentTheme.ACCENT_CYAN,
+            Thickness = 1.5
+        }):Play()
+        TweenService:Create(pLabel, TweenInfo.new(0.12), {
+            TextColor3 = currentTheme.ACCENT_CYAN
+        }):Play()
+    end)
+
+    pBtn.MouseLeave:Connect(function()
+        if currentThemeName == name then
+            return
+        end
+        TweenService:Create(pBtn, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = currentTheme.HEADER_BG
+        }):Play()
+        TweenService:Create(pStroke, TweenInfo.new(0.14), {
+            Color = currentTheme.BORDER_COLOR,
+            Thickness = 1
+        }):Play()
+        TweenService:Create(pLabel, TweenInfo.new(0.14), {
+            TextColor3 = currentTheme.TEXT_MAIN
+        }):Play()
+    end)
+
+    pBtn.MouseButton1Click:Connect(function()
+        playSound(SOUND_CLICK, 1.1)
+        applyTheme(name)
+        showNotification("Theme Applied", "UI theme set to " .. name)
+    end)
+end
+
+registerThemeElement(function(t)
+    ThemeCard.BackgroundColor3 = t.CARD_BG
+    ThemeStroke.Color = t.BORDER_COLOR
+    ThemeAccent.BackgroundColor3 = t.ACCENT_CYAN
+    ThemeTitle.TextColor3 = t.TEXT_MAIN
+    ThemeSub.TextColor3 = t.TEXT_MUTED
+
+    for name, refs in pairs(presetBtns) do
+        if name == currentThemeName then
+            refs.btn.BackgroundColor3 = t.CARD_HOVER
+            refs.stroke.Color = t.ACCENT_CYAN
+            refs.stroke.Thickness = 1.5
+            refs.label.TextColor3 = t.ACCENT_CYAN
+            refs.label.Font = Enum.Font.GothamBold
+        else
+            refs.btn.BackgroundColor3 = t.HEADER_BG
+            refs.stroke.Color = t.BORDER_COLOR
+            refs.stroke.Thickness = 1
+            refs.label.TextColor3 = t.TEXT_MAIN
+            refs.label.Font = Enum.Font.GothamMedium
+        end
+        refs.dot.BackgroundColor3 = Presets[name].ACCENT_CYAN
+    end
+end)
+
+----------------------------------------------------
+-- ACCURATE AUDIO MUTE/UNMUTE SYSTEM
+----------------------------------------------------
+createSettingToggleRow("Mute Game Audio", "Silence Roblox game sounds entirely", Settings.MuteGameAudio, function(val)
+    Settings.MuteGameAudio = val
+    if val then
+        for _, sound in ipairs(Workspace:GetDescendants()) do
+            if sound:IsA("Sound") then
+                if not sound:GetAttribute("OriginalVolume") then
+                    sound:SetAttribute("OriginalVolume", sound.Volume)
+                end
+                sound.Volume = 0
+            end
+        end
+        for _, sound in ipairs(SoundService:GetDescendants()) do
+            if sound:IsA("Sound") then
+                if not sound:GetAttribute("OriginalVolume") then
+                    sound:SetAttribute("OriginalVolume", sound.Volume)
+                end
+                sound.Volume = 0
+            end
+        end
+    else
+        for _, sound in ipairs(Workspace:GetDescendants()) do
+            if sound:IsA("Sound") then
+                local orig = sound:GetAttribute("OriginalVolume")
+                if orig ~= nil then
+                    sound.Volume = orig
+                end
+            end
+        end
+        for _, sound in ipairs(SoundService:GetDescendants()) do
+            if sound:IsA("Sound") then
+                local orig = sound:GetAttribute("OriginalVolume")
+                if orig ~= nil then
+                    sound.Volume = orig
+                end
+            end
+        end
+    end
+end)
+
+Workspace.DescendantAdded:Connect(function(desc)
+    if desc:IsA("Sound") then
+        if not desc:GetAttribute("OriginalVolume") then
+            desc:SetAttribute("OriginalVolume", desc.Volume)
+        end
+        if Settings.MuteGameAudio then
+            desc.Volume = 0
+        end
+    end
+end)
+
+SoundService.DescendantAdded:Connect(function(desc)
+    if desc:IsA("Sound") then
+        if not desc:GetAttribute("OriginalVolume") then
+            desc:SetAttribute("OriginalVolume", desc.Volume)
+        end
+        if Settings.MuteGameAudio then
+            desc.Volume = 0
+        end
+    end
+end)
+
+createSettingToggleRow("Anti-AFK Protection", "Prevents idle disconnect kicks while farming", Settings.AntiAFK, function(val)
+    Settings.AntiAFK = val
+end)
+
+createSettingToggleRow("UI Notifications", "Pop-up alerts for item spawns and updates", Settings.Notifications, function(val)
+    Settings.Notifications = val
+end)
+
+createSettingToggleRow("Teleport VFX Effects", "Shockwave rings on teleportation", Settings.TeleportEffects, function(val)
+    Settings.TeleportEffects = val
+end)
+
+createSettingToggleRow("UI Sound Cues", "Play audio feedback on interactions", Settings.SoundEnabled, function(val)
+    Settings.SoundEnabled = val
+end)
+
+----------------------------------------------------
+-- TAB 3: CREDITS TAB
+----------------------------------------------------
+local CreditsScroll = Instance.new("ScrollingFrame")
+CreditsScroll.Name = "CreditsScroll"
+CreditsScroll.Size = UDim2.new(1, 0, 1, 0)
+CreditsScroll.BackgroundTransparency = 1
+CreditsScroll.BorderSizePixel = 0
+CreditsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+CreditsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+CreditsScroll.ScrollBarThickness = 3
+CreditsScroll.ScrollBarImageTransparency = 0.15
+CreditsScroll.ClipsDescendants = true
+CreditsScroll.ZIndex = 3
+CreditsScroll.Parent = CreditsContent
+
+local CreditsLayout = Instance.new("UIListLayout")
+CreditsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+CreditsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+CreditsLayout.Padding = UDim.new(0, 10)
+CreditsLayout.Parent = CreditsScroll
+
+local CreditsPadding = Instance.new("UIPadding")
+CreditsPadding.PaddingTop = UDim.new(0, 7)
+CreditsPadding.PaddingBottom = UDim.new(0, 12)
+CreditsPadding.PaddingLeft = UDim.new(0, 5)
+CreditsPadding.PaddingRight = UDim.new(0, 5)
+CreditsPadding.Parent = CreditsScroll
+
+registerThemeElement(function(t)
+    CreditsScroll.ScrollBarImageColor3 = t.ACCENT_CYAN
+end)
+
+----------------------------------------------------
+-- CREATOR PROFILE
+----------------------------------------------------
+local CreatorCard = Instance.new("Frame")
+CreatorCard.Name = "CreatorCard"
+CreatorCard.Size = UDim2.new(1, 0, 0, 166)
+CreatorCard.LayoutOrder = 1
+CreatorCard.ZIndex = 3
+CreatorCard.ClipsDescendants = true
+CreatorCard.Parent = CreditsScroll
+
+local CreatorCorner = Instance.new("UICorner")
+CreatorCorner.CornerRadius = UDim.new(0, 13)
+CreatorCorner.Parent = CreatorCard
+
+local CreatorStroke = Instance.new("UIStroke")
+CreatorStroke.Thickness = 1
+CreatorStroke.Parent = CreatorCard
+
+local CreatorAccent = Instance.new("Frame")
+CreatorAccent.Name = "CreatorAccent"
+CreatorAccent.Size = UDim2.new(0, 3, 1, -24)
+CreatorAccent.Position = UDim2.new(0, 0, 0, 12)
+CreatorAccent.BorderSizePixel = 0
+CreatorAccent.ZIndex = 4
+CreatorAccent.Parent = CreatorCard
+
+local CreatorAccentCorner = Instance.new("UICorner")
+CreatorAccentCorner.CornerRadius = UDim.new(1, 0)
+CreatorAccentCorner.Parent = CreatorAccent
+
+local CreatorAvatarHolder = Instance.new("Frame")
+CreatorAvatarHolder.Name = "AvatarHolder"
+CreatorAvatarHolder.Size = UDim2.new(0, 92, 0, 92)
+CreatorAvatarHolder.Position = UDim2.new(0, 13, 0, 17)
+CreatorAvatarHolder.BorderSizePixel = 0
+CreatorAvatarHolder.ZIndex = 4
+CreatorAvatarHolder.Parent = CreatorCard
+
+local CreatorAvatarHolderCorner = Instance.new("UICorner")
+CreatorAvatarHolderCorner.CornerRadius = UDim.new(0, 14)
+CreatorAvatarHolderCorner.Parent = CreatorAvatarHolder
+
+local CreatorAvatarHolderStroke = Instance.new("UIStroke")
+CreatorAvatarHolderStroke.Thickness = 1
+CreatorAvatarHolderStroke.Parent = CreatorAvatarHolder
+
+local CreatorAvatar = Instance.new("ImageLabel")
+CreatorAvatar.Name = "CreatorAvatar"
+CreatorAvatar.Size = UDim2.new(1, -6, 1, -6)
+CreatorAvatar.Position = UDim2.new(0, 3, 0, 3)
+CreatorAvatar.BackgroundTransparency = 1
+CreatorAvatar.Image = "rbxassetid://127101533266694"
+CreatorAvatar.ScaleType = Enum.ScaleType.Crop
+CreatorAvatar.ZIndex = 5
+CreatorAvatar.Parent = CreatorAvatarHolder
+
+local CreatorAvatarCorner = Instance.new("UICorner")
+CreatorAvatarCorner.CornerRadius = UDim.new(0, 11)
+CreatorAvatarCorner.Parent = CreatorAvatar
+
+local CreatorName = Instance.new("TextLabel")
+CreatorName.Name = "CreatorName"
+CreatorName.Size = UDim2.new(1, -122, 0, 28)
+CreatorName.Position = UDim2.new(0, 118, 0, 14)
+CreatorName.BackgroundTransparency = 1
+CreatorName.Text = "Cecilla"
+CreatorName.Font = Enum.Font.GothamBlack
+CreatorName.TextSize = 22
+CreatorName.TextXAlignment = Enum.TextXAlignment.Left
+CreatorName.TextYAlignment = Enum.TextYAlignment.Center
+CreatorName.ZIndex = 5
+CreatorName.Parent = CreatorCard
+
+local CreatorNameGradient = Instance.new("UIGradient")
+CreatorNameGradient.Rotation = 0
+CreatorNameGradient.Parent = CreatorName
+
+local CreatorRole = Instance.new("TextLabel")
+CreatorRole.Size = UDim2.new(1, -122, 0, 16)
+CreatorRole.Position = UDim2.new(0, 119, 0, 43)
+CreatorRole.BackgroundTransparency = 1
+CreatorRole.Text = "ScriptOwner"
+CreatorRole.Font = Enum.Font.GothamBold
+CreatorRole.TextSize = 9
+CreatorRole.TextXAlignment = Enum.TextXAlignment.Left
+CreatorRole.ZIndex = 5
+CreatorRole.Parent = CreatorCard
+
+local CreatorRoleLine = Instance.new("Frame")
+CreatorRoleLine.Size = UDim2.new(0, 34, 0, 1)
+CreatorRoleLine.Position = UDim2.new(0, 119, 0, 60)
+CreatorRoleLine.BorderSizePixel = 0
+CreatorRoleLine.ZIndex = 5
+CreatorRoleLine.Parent = CreatorCard
+
+local CreatorDescription = Instance.new("TextLabel")
+CreatorDescription.Size = UDim2.new(1, -122, 0, 82)
+CreatorDescription.Position = UDim2.new(0, 119, 0, 67)
+CreatorDescription.BackgroundTransparency = 1
+CreatorDescription.Text = "Hello, my name is Cecilla.\n\nI'm 20 and I'm new to Roblox scripting.\nI hope you enjoy using my script.\nIf you run into any issues, let me know."
+CreatorDescription.Font = Enum.Font.Code
+CreatorDescription.TextSize = 9
+CreatorDescription.TextWrapped = true
+CreatorDescription.TextXAlignment = Enum.TextXAlignment.Left
+CreatorDescription.TextYAlignment = Enum.TextYAlignment.Top
+CreatorDescription.LineHeight = 1.05
+CreatorDescription.ZIndex = 5
+CreatorDescription.Parent = CreatorCard
+
+registerThemeElement(function(t)
+    CreatorCard.BackgroundColor3 = t.CARD_BG
+    CreatorStroke.Color = t.BORDER_COLOR
+    CreatorAccent.BackgroundColor3 = t.ACCENT_CYAN
+    CreatorAvatarHolder.BackgroundColor3 = t.HEADER_BG
+    CreatorAvatarHolderStroke.Color = t.ACCENT_CYAN
+    CreatorName.TextColor3 = t.TEXT_MAIN
+    CreatorNameGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, t.ACCENT_CYAN),
+        ColorSequenceKeypoint.new(1, t.TEXT_MAIN)
+    })
+    CreatorRole.TextColor3 = t.ACCENT_CYAN
+    CreatorRoleLine.BackgroundColor3 = t.ACCENT_CYAN
+    CreatorDescription.TextColor3 = t.TEXT_MUTED
+end)
+
+----------------------------------------------------
+-- PROJECT INFORMATION
+----------------------------------------------------
+local ProjectCard = Instance.new("Frame")
+ProjectCard.Name = "ProjectCard"
+ProjectCard.Size = UDim2.new(1, 0, 0, 132)
+ProjectCard.LayoutOrder = 2
+ProjectCard.ZIndex = 3
+ProjectCard.ClipsDescendants = true
+ProjectCard.Parent = CreditsScroll
+
+local ProjectCorner = Instance.new("UICorner")
+ProjectCorner.CornerRadius = UDim.new(0, 13)
+ProjectCorner.Parent = ProjectCard
+
+local ProjectStroke = Instance.new("UIStroke")
+ProjectStroke.Thickness = 1
+ProjectStroke.Parent = ProjectCard
+
+local ProjectAccent = Instance.new("Frame")
+ProjectAccent.Size = UDim2.new(0, 3, 1, -24)
+ProjectAccent.Position = UDim2.new(0, 0, 0, 12)
+ProjectAccent.BorderSizePixel = 0
+ProjectAccent.ZIndex = 4
+ProjectAccent.Parent = ProjectCard
+
+local ProjectAccentCorner = Instance.new("UICorner")
+ProjectAccentCorner.CornerRadius = UDim.new(1, 0)
+ProjectAccentCorner.Parent = ProjectAccent
+
+local ProjectSectionLabel = Instance.new("TextLabel")
+ProjectSectionLabel.Size = UDim2.new(1, -28, 0, 14)
+ProjectSectionLabel.Position = UDim2.new(0, 14, 0, 10)
+ProjectSectionLabel.BackgroundTransparency = 1
+ProjectSectionLabel.Text = "PROJECT"
+ProjectSectionLabel.Font = Enum.Font.Code
+ProjectSectionLabel.TextSize = 8
+ProjectSectionLabel.TextXAlignment = Enum.TextXAlignment.Left
+ProjectSectionLabel.ZIndex = 4
+ProjectSectionLabel.Parent = ProjectCard
+
+local ProjectTitle = Instance.new("TextLabel")
+ProjectTitle.Size = UDim2.new(1, -28, 0, 26)
+ProjectTitle.Position = UDim2.new(0, 14, 0, 27)
+ProjectTitle.BackgroundTransparency = 1
+ProjectTitle.Text = "Halo Archives"
+ProjectTitle.Font = Enum.Font.GothamBlack
+ProjectTitle.TextSize = 18
+ProjectTitle.TextXAlignment = Enum.TextXAlignment.Left
+ProjectTitle.ZIndex = 4
+ProjectTitle.Parent = ProjectCard
+
+local ProjectTitleGradient = Instance.new("UIGradient")
+ProjectTitleGradient.Parent = ProjectTitle
+
+local ProjectVersion = Instance.new("TextLabel")
+ProjectVersion.Size = UDim2.new(1, -28, 0, 17)
+ProjectVersion.Position = UDim2.new(0, 15, 0, 51)
+ProjectVersion.BackgroundTransparency = 1
+ProjectVersion.Text = "VERSION 2"
+ProjectVersion.Font = Enum.Font.Code
+ProjectVersion.TextSize = 9
+ProjectVersion.TextXAlignment = Enum.TextXAlignment.Left
+ProjectVersion.ZIndex = 4
+ProjectVersion.Parent = ProjectCard
+
+local ProjectDivider = Instance.new("Frame")
+ProjectDivider.Size = UDim2.new(1, -28, 0, 1)
+ProjectDivider.Position = UDim2.new(0, 14, 0, 70)
+ProjectDivider.BorderSizePixel = 0
+ProjectDivider.ZIndex = 4
+ProjectDivider.Parent = ProjectCard
+
+local ProjectDescription = Instance.new("TextLabel")
+ProjectDescription.Size = UDim2.new(1, -28, 0, 46)
+ProjectDescription.Position = UDim2.new(0, 14, 0, 78)
+ProjectDescription.BackgroundTransparency = 1
+ProjectDescription.Text = "Halo Archives newest script.\nThis is the new version, sorry for the delay."
+ProjectDescription.Font = Enum.Font.Code
+ProjectDescription.TextSize = 9
+ProjectDescription.TextWrapped = true
+ProjectDescription.TextXAlignment = Enum.TextXAlignment.Left
+ProjectDescription.TextYAlignment = Enum.TextYAlignment.Top
+ProjectDescription.LineHeight = 1.1
+ProjectDescription.ZIndex = 4
+ProjectDescription.Parent = ProjectCard
+
+registerThemeElement(function(t)
+    ProjectCard.BackgroundColor3 = t.CARD_BG
+    ProjectStroke.Color = t.BORDER_COLOR
+    ProjectAccent.BackgroundColor3 = t.ACCENT_CYAN
+    ProjectSectionLabel.TextColor3 = t.TEXT_MUTED
+    ProjectTitle.TextColor3 = t.TEXT_MAIN
+    ProjectTitleGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, t.ACCENT_CYAN),
+        ColorSequenceKeypoint.new(1, t.TEXT_MAIN)
+    })
+    ProjectVersion.TextColor3 = t.ACCENT_CYAN
+    ProjectDivider.BackgroundColor3 = t.BORDER_COLOR
+    ProjectDescription.TextColor3 = t.TEXT_MUTED
+end)
+
+----------------------------------------------------
+-- DISCORD CONTACT
+----------------------------------------------------
+local DiscordCard = Instance.new("Frame")
+DiscordCard.Name = "DiscordCard"
+DiscordCard.Size = UDim2.new(1, 0, 0, 82)
+DiscordCard.LayoutOrder = 3
+DiscordCard.ZIndex = 3
+DiscordCard.ClipsDescendants = true
+DiscordCard.Parent = CreditsScroll
+
+local DiscordCorner = Instance.new("UICorner")
+DiscordCorner.CornerRadius = UDim.new(0, 13)
+DiscordCorner.Parent = DiscordCard
+
+local DiscordStroke = Instance.new("UIStroke")
+DiscordStroke.Thickness = 1
+DiscordStroke.Parent = DiscordCard
+
+local DiscordAccent = Instance.new("Frame")
+DiscordAccent.Size = UDim2.new(0, 3, 1, -24)
+DiscordAccent.Position = UDim2.new(0, 0, 0, 12)
+DiscordAccent.BorderSizePixel = 0
+DiscordAccent.ZIndex = 4
+DiscordAccent.Parent = DiscordCard
+
+local DiscordAccentCorner = Instance.new("UICorner")
+DiscordAccentCorner.CornerRadius = UDim.new(1, 0)
+DiscordAccentCorner.Parent = DiscordCard
+
+local DiscordTitle = Instance.new("TextLabel")
+DiscordTitle.Size = UDim2.new(1, -112, 0, 18)
+DiscordTitle.Position = UDim2.new(0, 14, 0, 9)
+DiscordTitle.BackgroundTransparency = 1
+DiscordTitle.Text = "Discord"
+DiscordTitle.Font = Enum.Font.GothamBold
+DiscordTitle.TextSize = 11
+DiscordTitle.TextXAlignment = Enum.TextXAlignment.Left
+DiscordTitle.ZIndex = 4
+DiscordTitle.Parent = DiscordCard
+
+local DiscordUser = Instance.new("TextLabel")
+DiscordUser.Size = UDim2.new(1, -112, 0, 18)
+DiscordUser.Position = UDim2.new(0, 14, 0, 29)
+DiscordUser.BackgroundTransparency = 1
+DiscordUser.Text = "Eviisscared"
+DiscordUser.Font = Enum.Font.Code
+DiscordUser.TextSize = 10
+DiscordUser.TextXAlignment = Enum.TextXAlignment.Left
+DiscordUser.ZIndex = 4
+DiscordUser.Parent = DiscordCard
+
+local DiscordHint = Instance.new("TextLabel")
+DiscordHint.Size = UDim2.new(1, -112, 0, 15)
+DiscordHint.Position = UDim2.new(0, 14, 0, 50)
+DiscordHint.BackgroundTransparency = 1
+DiscordHint.Text = "Click to copy username"
+DiscordHint.Font = Enum.Font.Code
+DiscordHint.TextSize = 8
+DiscordHint.TextXAlignment = Enum.TextXAlignment.Left
+DiscordHint.ZIndex = 4
+DiscordHint.Parent = DiscordCard
+
+local DiscordCopyBtn = Instance.new("TextButton")
+DiscordCopyBtn.Name = "CopyButton"
+DiscordCopyBtn.Size = UDim2.new(0, 84, 0, 38)
+DiscordCopyBtn.Position = UDim2.new(1, -98, 0.5, -19)
+DiscordCopyBtn.Text = "COPY"
+DiscordCopyBtn.Font = Enum.Font.GothamBold
+DiscordCopyBtn.TextSize = 10
+DiscordCopyBtn.TextStrokeTransparency = 1
+DiscordCopyBtn.AutoButtonColor = false
+DiscordCopyBtn.ZIndex = 5
+DiscordCopyBtn.Parent = DiscordCard
+
+local DiscordCopyCorner = Instance.new("UICorner")
+DiscordCopyCorner.CornerRadius = UDim.new(0, 8)
+DiscordCopyCorner.Parent = DiscordCopyBtn
+
+local DiscordCopyStroke = Instance.new("UIStroke")
+DiscordCopyStroke.Thickness = 1
+DiscordCopyStroke.Parent = DiscordCopyBtn
+
+local DiscordCopyGradient = Instance.new("UIGradient")
+DiscordCopyGradient.Rotation = 0
+DiscordCopyGradient.Parent = DiscordCopyBtn
+
+local DiscordCopied = false
+
+DiscordCopyBtn.MouseEnter:Connect(function()
+    if DiscordCopied then
+        return
+    end
+
+    TweenService:Create(DiscordCopyBtn, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundColor3 = currentTheme.ACCENT_CYAN,
+        TextColor3 = currentTheme.TEXT_MAIN
+    }):Play()
+
+    TweenService:Create(DiscordCopyStroke, TweenInfo.new(0.14), {
+        Thickness = 2
+    }):Play()
+end)
+
+DiscordCopyBtn.MouseLeave:Connect(function()
+    if DiscordCopied then
+        return
+    end
+
+    TweenService:Create(DiscordCopyBtn, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundColor3 = currentTheme.HEADER_BG,
+        TextColor3 = currentTheme.ACCENT_CYAN
+    }):Play()
+
+    TweenService:Create(DiscordCopyStroke, TweenInfo.new(0.14), {
+        Thickness = 1
+    }):Play()
+end)
+
+DiscordCopyBtn.MouseButton1Click:Connect(function()
+    playSound(SOUND_CLICK, 1.1)
+
+    if setclipboard then
+        setclipboard("Eviisscared")
+        DiscordCopied = true
+        DiscordCopyBtn.Text = "✓ COPIED"
+        DiscordCopyBtn.BackgroundColor3 = currentTheme.ACCENT_CYAN
+        DiscordCopyBtn.TextColor3 = currentTheme.TEXT_MAIN
+        DiscordCopyStroke.Color = currentTheme.ACCENT_CYAN
+        DiscordCopyStroke.Thickness = 2
+
+        TweenService:Create(DiscordCopyBtn, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 92, 0, 42),
+            Position = UDim2.new(1, -102, 0.5, -21)
+        }):Play()
+
+        showNotification("Copied!", "Discord username copied: Eviisscared")
+
+        task.delay(1.5, function()
+            if DiscordCopyBtn and DiscordCopyBtn.Parent then
+                DiscordCopied = false
+                DiscordCopyBtn.Text = "COPY"
+
+                TweenService:Create(DiscordCopyBtn, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Size = UDim2.new(0, 84, 0, 38),
+                    Position = UDim2.new(1, -98, 0.5, -19),
+                    BackgroundColor3 = currentTheme.HEADER_BG,
+                    TextColor3 = currentTheme.ACCENT_CYAN
+                }):Play()
+
+                TweenService:Create(DiscordCopyStroke, TweenInfo.new(0.2), {
+                    Thickness = 1
+                }):Play()
+            end
+        end)
+    else
+        DiscordCopied = true
+        DiscordCopyBtn.Text = "✓ EVIISCARED"
+        DiscordCopyBtn.BackgroundColor3 = currentTheme.ACCENT_CYAN
+        DiscordCopyBtn.TextColor3 = currentTheme.TEXT_MAIN
+        DiscordCopyStroke.Color = currentTheme.ACCENT_CYAN
+        DiscordCopyStroke.Thickness = 2
+        showNotification("Discord username", "Eviisscared")
+
+        task.delay(1.5, function()
+            if DiscordCopyBtn and DiscordCopyBtn.Parent then
+                DiscordCopied = false
+                DiscordCopyBtn.Text = "COPY"
+                DiscordCopyBtn.BackgroundColor3 = currentTheme.HEADER_BG
+                DiscordCopyBtn.TextColor3 = currentTheme.ACCENT_CYAN
+                DiscordCopyStroke.Thickness = 1
+            end
+        end)
+    end
+end)
+
+registerThemeElement(function(t)
+    DiscordCard.BackgroundColor3 = t.CARD_BG
+    DiscordStroke.Color = t.BORDER_COLOR
+    DiscordAccent.BackgroundColor3 = t.ACCENT_CYAN
+    DiscordTitle.TextColor3 = t.TEXT_MAIN
+    DiscordUser.TextColor3 = t.ACCENT_CYAN
+    DiscordHint.TextColor3 = t.TEXT_MUTED
+
+    if not DiscordCopied then
+        DiscordCopyBtn.BackgroundColor3 = t.HEADER_BG
+        DiscordCopyBtn.TextColor3 = t.ACCENT_CYAN
+        DiscordCopyStroke.Color = t.BORDER_COLOR
+    else
+        DiscordCopyBtn.BackgroundColor3 = t.ACCENT_CYAN
+        DiscordCopyBtn.TextColor3 = t.TEXT_MAIN
+        DiscordCopyStroke.Color = t.ACCENT_CYAN
+    end
+
+    DiscordCopyGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, t.ACCENT_CYAN),
+        ColorSequenceKeypoint.new(1, t.ACCENT_CYAN)
+    })
+end)
+
+----------------------------------------------------
+-- TAB END MARKER
+----------------------------------------------------
+local CreditsFooter = Instance.new("TextLabel")
+CreditsFooter.Name = "CreditsFooter"
+CreditsFooter.Size = UDim2.new(1, 0, 0, 20)
+CreditsFooter.LayoutOrder = 4
+CreditsFooter.BackgroundTransparency = 1
+CreditsFooter.Text = "-- end of this tab"
+CreditsFooter.Font = Enum.Font.Code
+CreditsFooter.TextSize = 8
+CreditsFooter.TextXAlignment = Enum.TextXAlignment.Center
+CreditsFooter.ZIndex = 3
+CreditsFooter.Parent = CreditsScroll
+
+registerThemeElement(function(t)
+    CreditsFooter.TextColor3 = t.TEXT_MUTED
+end)
+
+-- DRAGGING ENGINE (PC & MOBILE OPTIMIZED)
+----------------------------------------------------
+local dragging, dragStart, startPos
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+----------------------------------------------------
+-- ANTI-AFK ENGINE
+----------------------------------------------------
+LocalPlayer.Idled:Connect(function()
+    if Settings.AntiAFK then
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+        task.wait(0.2)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+    end
+end)
+
+----------------------------------------------------
+-- UPGRADED TELEPORT VISUAL EFFECTS ENGINE
+----------------------------------------------------
+local function spawnTeleportEffects(position)
+    if not Settings.TeleportEffects then return end
+
+    task.spawn(function()
+        playSound(SOUND_TELEPORT, 1.15)
+
+        -- Primary Shockwave Ring
+        local ring1 = Instance.new("Part")
+        ring1.Size = Vector3.new(0.5, 0.05, 0.5)
+        ring1.CFrame = CFrame.new(position - Vector3.new(0, 2.8, 0))
+        ring1.Anchored = true
+        ring1.CanCollide = false
+        ring1.Material = Enum.Material.Neon
+        ring1.Color = currentTheme.ACCENT_CYAN
+        ring1.Transparency = 0.05
+        ring1.Parent = Workspace
+
+        -- Secondary Shockwave Ring (Echo)
+        local ring2 = Instance.new("Part")
+        ring2.Size = Vector3.new(0.2, 0.05, 0.2)
+        ring2.CFrame = CFrame.new(position - Vector3.new(0, 2.8, 0))
+        ring2.Anchored = true
+        ring2.CanCollide = false
+        ring2.Material = Enum.Material.Neon
+        ring2.Color = currentTheme.ACCENT_SECONDARY
+        ring2.Transparency = 0.2
+        ring2.Parent = Workspace
+
+        -- Vertical Teleport Beam Column
+        local beam = Instance.new("Part")
+        beam.Size = Vector3.new(1.2, 18, 1.2)
+        beam.CFrame = CFrame.new(position)
+        beam.Anchored = true
+        beam.CanCollide = false
+        beam.Material = Enum.Material.Neon
+        beam.Color = currentTheme.ACCENT_CYAN
+        beam.Transparency = 0.15
+        beam.Parent = Workspace
+
+        -- Core Inner Energy Pillar
+        local coreBeam = Instance.new("Part")
+        coreBeam.Size = Vector3.new(0.4, 22, 0.4)
+        coreBeam.CFrame = CFrame.new(position)
+        coreBeam.Anchored = true
+        coreBeam.CanCollide = false
+        coreBeam.Material = Enum.Material.Neon
+        coreBeam.Color = Color3.fromRGB(255, 255, 255)
+        coreBeam.Transparency = 0.05
+        coreBeam.Parent = Workspace
+
+        -- Animate Elements
+        TweenService:Create(ring1, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Size = Vector3.new(12, 0.05, 12),
+            Transparency = 1
+        }):Play()
+
+        task.delay(0.08, function()
+            TweenService:Create(ring2, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Size = Vector3.new(15, 0.05, 15),
+                Transparency = 1
+            }):Play()
+        end)
+
+        TweenService:Create(beam, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = Vector3.new(0.01, 24, 0.01),
+            Transparency = 1
+        }):Play()
+
+        TweenService:Create(coreBeam, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = Vector3.new(0.01, 26, 0.01),
+            Transparency = 1
+        }):Play()
+
+        task.wait(0.5)
+        ring1:Destroy()
+        ring2:Destroy()
+        beam:Destroy()
+        coreBeam:Destroy()
+    end)
+end
+
+----------------------------------------------------
+-- TRACKING & TELEPORTATION LOGIC
+----------------------------------------------------
+local farmThread = nil
+local farmRunId = 0
+local farmBusy = false
+
+local function isValidItem(item)
+    return item
+        and item.Parent
+        and item:IsDescendantOf(ItemsFolder)
+        and not item:IsA("Folder")
+end
+
+local function getCharacterParts()
+    local char = LocalPlayer.Character
+    if not char then return nil, nil, nil end
+    local hmr = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildWhichIsA("Humanoid")
+    return char, hmr, hum
+end
+
+local function calculatePerfectStandCFrame(item)
+    if not isValidItem(item) then return nil end
+
+    local position, size
+
+    if item:IsA("Model") then
+        local primary = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart", true)
+        if primary then
+            position = primary.CFrame
+            size = primary.Size
+        else
+            position, size = item:GetBoundingBox()
+        end
+    elseif item:IsA("BasePart") then
+        position = item.CFrame
+        size = item.Size
+    end
+
+    if not position or not size then return nil end
+
+    local _, _, hum = getCharacterParts()
+    local hipHeight = 3.2
+
+    if hum then
+        if hum.RigType == Enum.HumanoidRigType.R15 then
+            hipHeight = hum.HipHeight + 1.8
+        else
+            hipHeight = 3.2
+        end
+    end
+
+    local topSurfaceY = size.Y / 2
+    local targetPos = position.Position + Vector3.new(0, topSurfaceY + hipHeight, 0)
+
+    return CFrame.new(targetPos)
+end
+
+local function safeTeleport(targetCFrame)
+    local char, hmr, hum = getCharacterParts()
+    if not hmr or not targetCFrame then return end
+
+    spawnTeleportEffects(targetCFrame.Position)
+
+    hmr.AssemblyLinearVelocity = Vector3.zero
+    hmr.AssemblyAngularVelocity = Vector3.zero
+
+    hmr.CFrame = targetCFrame
+
+    task.wait(0.02)
+    hmr.AssemblyLinearVelocity = Vector3.zero
+    hmr.AssemblyAngularVelocity = Vector3.zero
+
+    if hum then
+        hum:ChangeState(Enum.HumanoidStateType.Running)
+    end
+end
+
+local function interactWithItem(item)
+    if not isValidItem(item) then return end
+
+    local prompt = item:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt then
+        if fireproximityprompt then
+            fireproximityprompt(prompt)
+        else
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            task.wait(prompt.HoldDuration > 0 and (prompt.HoldDuration + 0.05) or 0.1)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        end
+        return
+    end
+
+    local clickDetector = item:FindFirstChildWhichIsA("ClickDetector", true)
+    if clickDetector and fireclickdetector then
+        fireclickdetector(clickDetector)
+        return
+    end
+
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(0.1)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+end
+
+----------------------------------------------------
+-- REBUILT ITEM LIST SYNCHRONIZER
+----------------------------------------------------
+local itemThemeCleanups = {}
+
+local function clearItemThemeListeners()
+    for i = #itemThemeCleanups, 1, -1 do
+        local cleanup = itemThemeCleanups[i]
+        itemThemeCleanups[i] = nil
+        if cleanup then
+            cleanup()
+        end
+    end
+end
+
+local function syncItemBox()
+    clearItemThemeListeners()
+
+    for _, child in ipairs(ItemScrollList:GetChildren()) do
+        if not child:IsA("UIListLayout") then
+            child:Destroy()
+        end
+    end
+
+    local items = ItemsFolder:GetChildren()
+    ItemCountBadge.Text = #items .. " Items"
+
+    if #items == 0 then
+        local EmptyText = Instance.new("TextLabel")
+        EmptyText.Name = "EmptyTextLabel"
+        EmptyText.Size = UDim2.new(1, 0, 0, 40)
+        EmptyText.BackgroundTransparency = 1
+        EmptyText.Text = "No active items in workspace"
+        EmptyText.Font = Enum.Font.GothamMedium
+        EmptyText.TextSize = 11
+        EmptyText.ZIndex = 3
+        EmptyText.Parent = ItemScrollList
+
+        table.insert(itemThemeCleanups, registerThemeElement(function(t)
+            if EmptyText.Parent then
+                EmptyText.TextColor3 = t.TEXT_MUTED
+            end
+        end))
+        return
+    end
+
+    for idx, item in ipairs(items) do
+        local ItemFrame = Instance.new("Frame")
+        ItemFrame.Size = UDim2.new(1, -6, 0, 38)
+        ItemFrame.LayoutOrder = idx
+        ItemFrame.ZIndex = 3
+        ItemFrame.Parent = ItemScrollList
+
+        local ItemCorner = Instance.new("UICorner")
+        ItemCorner.CornerRadius = UDim.new(0, 6)
+        ItemCorner.Parent = ItemFrame
+
+        local ItemStroke = Instance.new("UIStroke")
+        ItemStroke.Thickness = 1
+        ItemStroke.Transparency = 0.5
+        ItemStroke.Parent = ItemFrame
+
+        local StrokeGradient = Instance.new("UIGradient")
+        StrokeGradient.Rotation = 45
+        StrokeGradient.Parent = ItemStroke
+
+        local AccentBar = Instance.new("Frame")
+        AccentBar.Size = UDim2.new(0, 3, 0, 16)
+        AccentBar.Position = UDim2.new(0, 6, 0.5, -8)
+        AccentBar.BorderSizePixel = 0
+        AccentBar.ZIndex = 4
+        AccentBar.Parent = ItemFrame
+
+        local AccentBarCorner = Instance.new("UICorner")
+        AccentBarCorner.CornerRadius = UDim.new(1, 0)
+        AccentBarCorner.Parent = AccentBar
+
+        local BarGradient = Instance.new("UIGradient")
+        BarGradient.Rotation = 90
+        BarGradient.Parent = AccentBar
+
+        local RowContent = Instance.new("Frame")
+        RowContent.Size = UDim2.new(1, -24, 1, 0)
+        RowContent.Position = UDim2.new(0, 16, 0, 0)
+        RowContent.BackgroundTransparency = 1
+        RowContent.ZIndex = 4
+        RowContent.Parent = ItemFrame
+
+        local RowLayout = Instance.new("UIListLayout")
+        RowLayout.FillDirection = Enum.FillDirection.Horizontal
+        RowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+        RowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        RowLayout.Padding = UDim.new(0, 8)
+        RowLayout.Parent = RowContent
+
+        local IconDot = Instance.new("Frame")
+        IconDot.Size = UDim2.new(0, 5, 0, 5)
+        IconDot.BorderSizePixel = 0
+        IconDot.LayoutOrder = 1
+        IconDot.ZIndex = 4
+        IconDot.Parent = RowContent
+
+        local DotCorner = Instance.new("UICorner")
+        DotCorner.CornerRadius = UDim.new(1, 0)
+        DotCorner.Parent = IconDot
+
+        local ItemNameLabel = Instance.new("TextLabel")
+        ItemNameLabel.Size = UDim2.new(1, -20, 1, 0)
+        ItemNameLabel.BackgroundTransparency = 1
+        ItemNameLabel.Text = item.Name
+        ItemNameLabel.Font = Enum.Font.GothamMedium
+        ItemNameLabel.TextSize = 11
+        ItemNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        ItemNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+        ItemNameLabel.LayoutOrder = 2
+        ItemNameLabel.ZIndex = 4
+        ItemNameLabel.Parent = RowContent
+
+        local ItemBtn = Instance.new("TextButton")
+        ItemBtn.Size = UDim2.new(1, 0, 1, 0)
+        ItemBtn.BackgroundTransparency = 1
+        ItemBtn.Text = ""
+        ItemBtn.ZIndex = 5
+        ItemBtn.Parent = ItemFrame
+
+        table.insert(itemThemeCleanups, registerThemeElement(function(t)
+            if not ItemFrame.Parent then return end
+
+            ItemFrame.BackgroundColor3 = t.HEADER_BG
+            ItemStroke.Color = t.BORDER_COLOR
+            StrokeGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, t.ACCENT_CYAN),
+                ColorSequenceKeypoint.new(1, t.ACCENT_SECONDARY)
+            })
+            BarGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, t.ACCENT_CYAN),
+                ColorSequenceKeypoint.new(1, t.ACCENT_SECONDARY)
+            })
+            IconDot.BackgroundColor3 = t.ACCENT_CYAN
+            ItemNameLabel.TextColor3 = t.TEXT_MAIN
+        end))
+
+        ItemBtn.MouseEnter:Connect(function()
+            TweenService:Create(ItemFrame, TweenInfo.new(0.15), {
+                BackgroundColor3 = currentTheme.CARD_HOVER,
+            }):Play()
+            TweenService:Create(ItemStroke, TweenInfo.new(0.15), {Transparency = 0}):Play()
+            TweenService:Create(AccentBar, TweenInfo.new(0.15), {Size = UDim2.new(0, 3, 0, 22), Position = UDim2.new(0, 6, 0.5, -11)}):Play()
+        end)
+
+        ItemBtn.MouseLeave:Connect(function()
+            TweenService:Create(ItemFrame, TweenInfo.new(0.15), {
+                BackgroundColor3 = currentTheme.HEADER_BG,
+            }):Play()
+            TweenService:Create(ItemStroke, TweenInfo.new(0.15), {Transparency = 0.5}):Play()
+            TweenService:Create(AccentBar, TweenInfo.new(0.15), {Size = UDim2.new(0, 3, 0, 16), Position = UDim2.new(0, 6, 0.5, -8)}):Play()
+        end)
+
+        ItemBtn.MouseButton1Click:Connect(function()
+            playSound(SOUND_CLICK, 1.1)
+
+            if item and item.Parent then
+                local targetCF = calculatePerfectStandCFrame(item)
+                if targetCF then
+                    safeTeleport(targetCF)
+                    task.wait(0.15)
+                    interactWithItem(item)
+                end
+            end
+        end)
+    end
+end
+
+ItemsFolder.ChildAdded:Connect(function(child)
+    task.defer(function()
+        syncItemBox()
+        showNotification("New Item!", child.Name .. " spawned")
+    end)
+end)
+
+ItemsFolder.ChildRemoved:Connect(function()
+    task.defer(syncItemBox)
+end)
+
+syncItemBox()
+
+----------------------------------------------------
+-- AUTOMATION & WINDOW CONTROLS
+----------------------------------------------------
+local function stopAutoFarm()
+    farmRunId += 1
+    autoFarmEnabled = false
+    farmBusy = false
+
+    if farmThread then
+        task.cancel(farmThread)
+        farmThread = nil
+    end
+end
+
+local function startAutoFarm()
+    if farmThread then
+        return
+    end
+
+    farmRunId += 1
+    local myRunId = farmRunId
+
+    farmThread = task.spawn(function()
+        while autoFarmEnabled and myRunId == farmRunId do
+            local items = ItemsFolder:GetChildren()
+
+            if #items > 0 then
+                for _, item in ipairs(items) do
+                    if not autoFarmEnabled or myRunId ~= farmRunId then
+                        break
+                    end
+
+                    if isValidItem(item) and not farmBusy then
+                        local targetCF = calculatePerfectStandCFrame(item)
+
+                        if targetCF then
+                            farmBusy = true
+
+                            local ok = pcall(function()
+                                safeTeleport(targetCF)
+                                task.wait(0.15)
+
+                                if autoFarmEnabled and myRunId == farmRunId and isValidItem(item) then
+                                    interactWithItem(item)
+                                end
+
+                                task.wait(math.max(0.15, tonumber(Settings.FarmSpeed) or 0.35))
+                            end)
+
+                            farmBusy = false
+
+                            if not ok then
+                                task.wait(0.1)
+                            end
+                        end
+                    end
+                end
+            else
+                task.wait(0.5)
+            end
+
+            task.wait(0.1)
+        end
+
+        if farmRunId == myRunId then
+            farmThread = nil
+            farmBusy = false
+        end
+    end)
+end
+
+ToggleBg.MouseButton1Click:Connect(function()
+    playSound(SOUND_TOGGLE, autoFarmEnabled and 0.9 or 1.1)
+
+    if autoFarmEnabled then
+        stopAutoFarm()
+
+        TweenService:Create(ToggleBg, TweenInfo.new(0.2), {
+            BackgroundColor3 = currentTheme.HEADER_BG
+        }):Play()
+        TweenService:Create(ToggleCircle, TweenInfo.new(0.2), {
+            Position = UDim2.new(0, 3, 0.5, -8),
+            BackgroundColor3 = currentTheme.TEXT_MAIN
+        }):Play()
+        TweenService:Create(LivePulse, TweenInfo.new(0.2), {
+            BackgroundColor3 = currentTheme.TEXT_MUTED
+        }):Play()
+
+        showNotification("Auto Farm", "Automation disabled")
+    else
+        autoFarmEnabled = true
+
+        TweenService:Create(ToggleBg, TweenInfo.new(0.2), {
+            BackgroundColor3 = currentTheme.ACCENT_CYAN
+        }):Play()
+        TweenService:Create(ToggleCircle, TweenInfo.new(0.2), {
+            Position = UDim2.new(1, -19, 0.5, -8),
+            BackgroundColor3 = currentTheme.BG_MAIN
+        }):Play()
+        TweenService:Create(LivePulse, TweenInfo.new(0.2), {
+            BackgroundColor3 = currentTheme.ACCENT_CYAN
+        }):Play()
+
+        showNotification("Auto Farm", "Loop automation activated")
+        startAutoFarm()
+    end
+end)
+
+local isMinimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    playSound(SOUND_CLICK, 0.8)
+    isMinimized = not isMinimized
+
+    if isMinimized then
+        TabBar.Visible = false
+        MainContent.Visible = false
+        SettingsContent.Visible = false
+        CreditsContent.Visible = false
+        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 370, 0, 44)}):Play()
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 370, 0, 520)}):Play()
+        task.wait(0.15)
+        TabBar.Visible = true
+        switchTab(activeTab)
+    end
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    playSound(SOUND_CLOSE, 1.0)
+    stopAutoFarm()
+    clearItemThemeListeners()
+
+    TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 340, 0, 0),
+        Position = UDim2.new(0.5, -170, 0.5, 0)
+    }):Play()
+
+    task.wait(0.2)
+    ScreenGui:Destroy()
+end)
+
+showNotification("Hub Loaded", "Halo Archives | Cecilla Hub loaded")
